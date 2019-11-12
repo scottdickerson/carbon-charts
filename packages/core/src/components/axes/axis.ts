@@ -13,7 +13,6 @@ import { min, extent } from "d3-array";
 import { timeFormatDefaultLocale } from "d3-time-format";
 import moment from "moment";
 
-
 export class Axis extends Component {
 	type = "axes";
 
@@ -35,7 +34,7 @@ export class Axis extends Component {
 	createOrGetScale() {
 		const { position } = this.configs;
 		const axisOptions = Tools.getProperty(this.model.getOptions(), "axes", position);
-		this.scaleType = (axisOptions && axisOptions.scaleType) ? axisOptions.scaleType : ScaleTypes.LINEAR;
+		this.scaleType = axisOptions && axisOptions.scaleType ? axisOptions.scaleType : ScaleTypes.LINEAR;
 
 		let scaleFunction;
 		if (this.scaleType === ScaleTypes.TIME) {
@@ -97,15 +96,16 @@ export class Axis extends Component {
 		// If the scale is stacked
 		if (axisOptions.stacked) {
 			domain = extent(
-				labels.reduce((m, label: any, i) => {
-					const correspondingValues = datasets.map(dataset => {
-						return !isNaN(dataset.data[i]) ? dataset.data[i] : dataset.data[i].value;
-					});
-					const totalValue = correspondingValues.reduce((a, b) => a + b, 0);
+				labels
+					.reduce((m, label: any, i) => {
+						const correspondingValues = datasets.map(dataset => {
+							return !isNaN(dataset.data[i]) ? dataset.data[i] : dataset.data[i].value;
+						});
+						const totalValue = correspondingValues.reduce((a, b) => a + b, 0);
 
-					// Save both the total value and the minimum
-					return m.concat(totalValue, min(correspondingValues));
-				}, [])
+						// Save both the total value and the minimum
+						return m.concat(totalValue, min(correspondingValues));
+					}, [])
 					// Currently stack layouts in the library
 					// Only support positive values
 					.concat(0)
@@ -154,13 +154,8 @@ export class Axis extends Component {
 					startMoment.subtract(1, "minute");
 					endMoment.add(1, "minute");
 				}
-				return [
-					startMoment.toDate(),
-					endMoment.toDate()
-				];
+				return [startMoment.toDate(), endMoment.toDate()];
 			}
-
-
 		}
 
 		// TODO - Work with design to improve logic
@@ -174,7 +169,9 @@ export class Axis extends Component {
 		const axisOptions = Tools.getProperty(options, "axes", axisPosition);
 
 		const svg = this.getContainerSVG();
-		const { width, height } = DOMUtils.getSVGElementSize(this.parent, { useAttrs: true });
+		const { width, height } = DOMUtils.getSVGElementSize(this.parent, {
+			useAttrs: true
+		});
 
 		let startPosition, endPosition;
 		if (axisPosition === AxisPositions.BOTTOM || axisPosition === AxisPositions.TOP) {
@@ -231,8 +228,11 @@ export class Axis extends Component {
 			axis.ticks(numberOfTicks);
 
 			if (this.scaleType === ScaleTypes.TIME) {
-				let tickValues = scale.ticks(numberOfTicks).concat(scale.domain())
-					.map(date => +date).sort();
+				let tickValues = scale
+					.ticks(numberOfTicks)
+					.concat(scale.domain())
+					.map(date => +date)
+					.sort();
 				tickValues = Tools.removeArrayDuplicates(tickValues);
 
 				// Remove labels on the edges
@@ -269,31 +269,36 @@ export class Axis extends Component {
 
 		// Position the axis title
 		if (axisOptions.title) {
-			const axisTitleRef = DOMUtils.appendOrSelect(container, `text.axis-title`)
-				.text(axisOptions.title);
+			const axisTitleRef = DOMUtils.appendOrSelect(container, `text.axis-title`).text(axisOptions.title);
 
 			switch (axisPosition) {
 				case AxisPositions.LEFT:
-					axisTitleRef.attr("transform", "rotate(-90)")
+					axisTitleRef
+						.attr("transform", "rotate(-90)")
 						.attr("y", 0)
 						.attr("x", -(scale.range()[0] / 2))
 						.attr("dy", "1em")
 						.style("text-anchor", "middle");
 					break;
 				case AxisPositions.BOTTOM:
-					axisTitleRef.attr("transform", `translate(${this.margins.left / 2 + scale.range()[1] / 2}, ${height})`)
+					axisTitleRef
+						.attr("transform", `translate(${this.margins.left / 2 + scale.range()[1] / 2}, ${height})`)
 						.style("text-anchor", "middle");
 					break;
 				case AxisPositions.RIGHT:
-					axisTitleRef.attr("transform", "rotate(90)")
+					axisTitleRef
+						.attr("transform", "rotate(90)")
 						.attr("y", -width)
 						.attr("x", scale.range()[0] / 2)
 						.attr("dy", "1em")
 						.style("text-anchor", "middle");
 					break;
 				case AxisPositions.TOP:
-					const { height: titleHeight } = DOMUtils.getSVGElementSize(axisTitleRef, { useBBox: true });
-					axisTitleRef.attr("transform", `translate(${this.margins.left / 2 + scale.range()[1] / 2}, ${titleHeight / 2})`)
+					const { height: titleHeight } = DOMUtils.getSVGElementSize(axisTitleRef, {
+						useBBox: true
+					});
+					axisTitleRef
+						.attr("transform", `translate(${this.margins.left / 2 + scale.range()[1] / 2}, ${titleHeight / 2})`)
 						.style("text-anchor", "middle");
 					break;
 			}
@@ -303,8 +308,7 @@ export class Axis extends Component {
 		if (!animate || !axisRefExists) {
 			axisRef = axisRef.call(axis);
 		} else {
-			axisRef = axisRef.transition(this.services.transitions.getTransition("axis-update"))
-				.call(axis);
+			axisRef = axisRef.transition(this.services.transitions.getTransition("axis-update")).call(axis);
 		}
 
 		if (axisPosition === AxisPositions.BOTTOM || axisPosition === AxisPositions.TOP) {
@@ -312,8 +316,16 @@ export class Axis extends Component {
 				const textNodes = axisRef.selectAll("g.tick text").nodes();
 
 				// If any ticks are any larger than the scale step size
-				if (textNodes.some(textNode => DOMUtils.getSVGElementSize(textNode, { useBBox: true }).width >= scale.step())) {
-					axisRef.selectAll("g.tick text")
+				if (
+					textNodes.some(
+						textNode =>
+							DOMUtils.getSVGElementSize(textNode, {
+								useBBox: true
+							}).width >= scale.step()
+					)
+				) {
+					axisRef
+						.selectAll("g.tick text")
 						.attr("transform", `rotate(45)`)
 						.style("text-anchor", axisPosition === AxisPositions.TOP ? "end" : "start");
 
@@ -323,7 +335,8 @@ export class Axis extends Component {
 				const estimatedTickSize = width / scale.ticks().length / 2;
 
 				if (estimatedTickSize < 30) {
-					axisRef.selectAll("g.tick text")
+					axisRef
+						.selectAll("g.tick text")
 						.attr("transform", `rotate(45)`)
 						.style("text-anchor", axisPosition === AxisPositions.TOP ? "end" : "start");
 
@@ -331,7 +344,8 @@ export class Axis extends Component {
 				}
 			}
 
-			axisRef.selectAll("g.tick text")
+			axisRef
+				.selectAll("g.tick text")
 				.attr("transform", null)
 				.style("text-anchor", null);
 		}
@@ -352,14 +366,12 @@ export class Axis extends Component {
 	getAxisRef() {
 		const { position: axisPosition } = this.configs;
 
-		return this.getContainerSVG()
-			.select(`g.axis.${axisPosition} g.ticks`);
+		return this.getContainerSVG().select(`g.axis.${axisPosition} g.ticks`);
 	}
 
 	getTitleRef() {
 		const { position: axisPosition } = this.configs;
 
-		return this.getContainerSVG()
-			.select(`g.axis.${axisPosition} text.axis-title`);
+		return this.getContainerSVG().select(`g.axis.${axisPosition} text.axis-title`);
 	}
 }
